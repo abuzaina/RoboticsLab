@@ -12,34 +12,34 @@ bool intersection(Point2f o1, Point2f p1, Point2f o2, Point2f p2, Point2f &r);
 cv::Point2f lineIntersection(cv::Point &p1, cv::Point &p2, cv::Point &p3, cv::Point &p4);
 char key;
 int main() {
-	VideoCapture cap(0);
+	VideoCapture cap("Y:/cvdev/vollyballVids/v3.mp4");
 	if (!cap.isOpened())  // check if we succeeded
 		return -1;
 
 	// Camera Calibration
-	Mat cameraMatrix, distCoeffs;
+	/*Mat cameraMatrix, distCoeffs;
 	FileStorage fs("C:\\out_camera_data.xml", FileStorage::READ);
 	if (fs.isOpened()) {
 		fs["Camera_Matrix"] >> cameraMatrix;
 		fs["Distortion_Coefficients"] >> distCoeffs;
 		fs.release();
-	}
+	}*/
 
-	system("pause");
+//	system("pause");
 
-	for (;;) {
+	for (;;)
+	{
 		Mat temp, frame;
 		cap >> frame; // get a new frame from camera
+
+	//	frame = imread("Y:/cvdev/vollyballVids/c6.jpg");
+		//cv::resize(frame, frame, cv::Size(2992 / 2, 1000));
 	//	cv::undistort(temp, frame, cameraMatrix, distCoeffs);
 
-		// parameters
-		const int TAU = 3;
-		const int SIG_L = 200;
-		const int SIG_D = 20;
-		const int B = 2;
-		const float SIG_H = 0.0007;
+
 		const float THRES = 20;
 		cv::Mat image = frame.clone();
+
 
 		// court points
 
@@ -47,38 +47,37 @@ int main() {
 		cv::Mat image_gray;
 		cv::cvtColor(image, image_gray, CV_BGR2GRAY);
 
-		// white pixel detection
-		cv::Mat white_pixels = cv::Mat::zeros(image.rows, image.cols, CV_8UC1);
-		for (int i = TAU; i < image.rows - TAU; ++i) {
-			for (int j = TAU; j < image.cols - TAU; ++j) {
-				if ((image_gray.at<uchar>(i, j) <= SIG_L &&
-					image_gray.at<uchar>(i - TAU, j) - image_gray.at<uchar>(i, j) > SIG_D &&
-					image_gray.at<uchar>(i + TAU, j) - image_gray.at<uchar>(i, j) > SIG_D) ||
-					(image_gray.at<uchar>(i, j) <= SIG_L &&
-						image_gray.at<uchar>(i, j - TAU) - image_gray.at<uchar>(i, j) > SIG_D &&
-						image_gray.at<uchar>(i, j + TAU) - image_gray.at<uchar>(i, j) > SIG_D)
-					) {
-					white_pixels.at<uchar>(i, j) = 255;
-				}
-			}
-		}
-
-		cv::imshow("white pixels", white_pixels);
 
 		// compute structure matrix within the pixel neighborhood
 		// gradient x
 		cv::Mat image_gradient_x;
 		cv::Sobel(image_gray, image_gradient_x, image_gray.depth(), 1, 0);
 		cv::convertScaleAbs(image_gradient_x, image_gradient_x);
+		cv::threshold(image_gradient_x, image_gradient_x, 150, 200, cv::THRESH_TOZERO);
 
 		// gradient y
 		cv::Mat image_gradient_y;
 		cv::Sobel(image_gray, image_gradient_y, image_gray.depth(), 0, 1);
-		cv::convertScaleAbs(image_gradient_y, image_gradient_y);
+		//cv::convertScaleAbs(image_gradient_y, image_gradient_y);
+		cv::threshold(image_gradient_y, image_gradient_y, 150, 200, cv::THRESH_TOZERO);
 
+		cv::Mat image_gradient;
+		cv::addWeighted(image_gradient_y, 1, image_gradient_x, 1, 0, image_gradient);
+		vector<Vec4i> lines;
+		HoughLinesP(image_gradient, lines, 1, CV_PI / 180, 50, 50, 10);
+		for (size_t i = 0; i < lines.size(); i++)
+		{
+			Vec4i l = lines[i];
+			line(image, Point(l[0], l[1]), Point(l[2], l[3]), Scalar(0, 0, 255), 3, CV_AA);
+		}
+
+		cv::imshow("image", image);
+
+
+#if 0
 		// Apply Hough transform to find the lines
 		std::vector<cv::Vec2f> lines;
-		cv::HoughLines(white_pixels, lines, 1, CV_PI / 180, 120);
+		cv::HoughLines(image_gradient_y, lines, 1, CV_PI / 180, 120);
 
 		// group the lines according to the theta
 		std::vector<std::vector<int>> groups(lines.size(), std::vector<int>(lines.size()));
@@ -120,8 +119,8 @@ int main() {
 		}
 
 		cv::Mat color_dst2; // for drawing lines
-		cv::cvtColor(white_pixels, color_dst2, CV_GRAY2BGR);
-		std::vector<std::vector<float> > refine_lines(num_groups, 3); // 0: rho, 1: theta, 3: 1 for horizontal and -1 for vertical
+		cv::cvtColor(image_gradient_y, color_dst2, CV_GRAY2BGR);
+		std::vector<std::vector<float> > refine_lines(num_groups, std::vector<float>(3)); // 0: rho, 1: theta, 3: 1 for horizontal and -1 for vertical
 		for (int i = 0; i < num_groups; ++i) {
 			float sum_rho = 0;
 			float sum_theta = 0;
@@ -199,7 +198,7 @@ int main() {
 		indices[1] = max_hor_index_2;
 		indices[2] = min_ver_index;
 		indices[3] = max_ver_index;
-		std::vector<std::vector<cv::Point> > points(4, 2);
+		std::vector<std::vector<cv::Point> > points(4, std::vector<cv::Point>(2));
 
 
 		for (int i = 0; i < 4; ++i) {
@@ -249,7 +248,7 @@ int main() {
 		imshow("transform", transform_image);
 
 		// volleyball model
-		std::vector<std::vector<cv::Point2f> > line_segments(4, 2);
+		std::vector<std::vector<cv::Point2f> > line_segments(4, std::vector<cv::Point2f>(2));
 		line_segments[0][0] = cv::Point2f(10, 10);
 		line_segments[0][1] = cv::Point2f(10, 370);
 		line_segments[1][0] = cv::Point2f(10, 370);
@@ -320,8 +319,9 @@ int main() {
 
 		imshow("court", out);
 
-		if (waitKey(30) >= 0)
-			break;
+#endif
+
+		waitKey(30);
 	}
 
 	// the camera will be deinitialized automatically in VideoCapture destructor
