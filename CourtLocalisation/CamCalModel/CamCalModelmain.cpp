@@ -12,7 +12,7 @@ bool intersection(Point2f o1, Point2f p1, Point2f o2, Point2f p2, Point2f &r);
 cv::Point2f lineIntersection(cv::Point &p1, cv::Point &p2, cv::Point &p3, cv::Point &p4);
 char key;
 int main() {
-	VideoCapture cap("Y:/cvdev/vollyballVids/v3.mp4");
+	VideoCapture cap("Y:/cvdev/vollyballVids/v4.mp4");
 	if (!cap.isOpened())  // check if we succeeded
 		return -1;
 
@@ -53,13 +53,13 @@ int main() {
 		cv::Mat image_gradient_x;
 		cv::Sobel(image_gray, image_gradient_x, image_gray.depth(), 1, 0);
 		cv::convertScaleAbs(image_gradient_x, image_gradient_x);
-		cv::threshold(image_gradient_x, image_gradient_x, 150, 200, cv::THRESH_TOZERO);
+		cv::threshold(image_gradient_x, image_gradient_x, 100, 200, cv::THRESH_TOZERO);
 
 		// gradient y
 		cv::Mat image_gradient_y;
 		cv::Sobel(image_gray, image_gradient_y, image_gray.depth(), 0, 1);
 		//cv::convertScaleAbs(image_gradient_y, image_gradient_y);
-		cv::threshold(image_gradient_y, image_gradient_y, 150, 200, cv::THRESH_TOZERO);
+		cv::threshold(image_gradient_y, image_gradient_y, 100, 200, cv::THRESH_TOZERO);
 
 		cv::Mat image_gradient;
 		cv::addWeighted(image_gradient_y, 1, image_gradient_x, 1, 0, image_gradient);
